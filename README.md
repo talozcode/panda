@@ -45,6 +45,19 @@ Health checks:
 ## Fly.io deployment
 
 1. Install Fly CLI and authenticate.
+
+### App name alignment (important)
+
+Fly uses the app name in `fly.toml`. If this does not match your real Fly app, deploy can fail with messages like: "app does not have a Dockerfile or buildpacks configured".
+
+For this repo, `fly.toml` is set to:
+
+```toml
+app = "panda-w5karw"
+```
+
+If your actual Fly app name is different, update `app` first or pass `-a <your-app-name>` consistently.
+
 2. Optionally change `app` in `fly.toml`.
 3. Deploy:
 
