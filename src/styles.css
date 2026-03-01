@@ -19,6 +19,8 @@ body,
 body {
   overflow: hidden;
   background: radial-gradient(circle at 20% 20%, #fbfff3, #f2fffa 45%, #e9f8ff 100%);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .scene {
@@ -86,6 +88,11 @@ body {
 
 .panda:active {
   filter: saturate(1.2) brightness(1.05);
+}
+
+.panda.glow {
+  filter: drop-shadow(0 0 12px rgba(255, 234, 170, 0.95)) drop-shadow(0 0 20px rgba(255, 192, 215, 0.8));
+  animation: glowPulse 1s ease-out, drift var(--drift, 5s) ease-in-out infinite, sway var(--sway, 4s) ease-in-out infinite;
 }
 
 .panda-body {
@@ -253,6 +260,12 @@ body {
   100% { transform: rotate(360deg) translateX(0); }
 }
 
+@keyframes glowPulse {
+  0% { filter: drop-shadow(0 0 0 rgba(255, 236, 180, 0.7)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 236, 180, 1)) drop-shadow(0 0 26px rgba(255, 193, 219, 0.9)); }
+  100% { filter: drop-shadow(0 0 9px rgba(255, 236, 180, 0.6)); }
+}
+
 @keyframes heartPop {
   10% { opacity: 1; transform: translateY(4px) scale(0.7); }
   80% { opacity: 1; transform: translateY(-18px) scale(1.2); }
@@ -288,7 +301,8 @@ body {
   .scene.reduced-motion .max-mode::after,
   .scene.reduced-motion .panda-eye,
   .scene.reduced-motion .panda-ear,
-  .scene.reduced-motion .heart {
+  .scene.reduced-motion .heart,
+  .scene.reduced-motion .panda.glow {
     animation: none !important;
   }
 }

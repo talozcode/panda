@@ -55,6 +55,7 @@ export default function App() {
   const idRef = useRef(1);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastPandaTapRef = useRef<{ id: number; at: number } | null>(null);
+  const [glowingPandas, setGlowingPandas] = useState<Set<number>>(new Set());
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -85,19 +86,24 @@ export default function App() {
     const audioContext = getAudioContext();
     if (!audioContext) return;
 
-    if (audioContext.state === 'suspended') {
-      void audioContext.resume();
-    }
+    const playNow = () => {
+      const now = audioContext.currentTime + 0.01;
+      if (kind === 'cute') {
+        playTone(820, 90, 'triangle', 0.12, now);
+        playTone(1080, 130, 'sine', 0.1, now + 0.1);
+        return;
+      }
 
-    const now = audioContext.currentTime + 0.01;
-    if (kind === 'cute') {
-      playTone(740, 80, 'triangle', 0.08, now);
-      playTone(980, 120, 'sine', 0.07, now + 0.09);
+      playTone(300, 130, 'square', 0.11, now);
+      playTone(210, 190, 'sawtooth', 0.1, now + 0.09);
+    };
+
+    if (audioContext.state === 'suspended') {
+      void audioContext.resume().then(playNow).catch(playNow);
       return;
     }
 
-    playTone(330, 120, 'square', 0.06, now);
-    playTone(240, 170, 'sawtooth', 0.07, now + 0.08);
+    playNow();
   }, [getAudioContext, playTone]);
 
   useEffect(() => {
@@ -185,6 +191,23 @@ export default function App() {
     }, 950);
   }, []);
 
+  const triggerGlow = useCallback((id: number) => {
+    setGlowingPandas((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
+    window.setTimeout(() => {
+      setGlowingPandas((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 1000);
+  }, []);
+
   const onSceneTap = useCallback((event: React.PointerEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('.panda') || target.closest('.more-btn')) return;
@@ -226,7 +249,7 @@ export default function App() {
       {pandas.map((panda) => (
         <button
           key={panda.id}
-          className={`panda ${panda.giant ? 'giant' : ''} ${panda.mini ? 'mini' : ''} ${panda.action ? `act-${panda.action}` : ''}`}
+          className={`panda ${panda.giant ? 'giant' : ''} ${panda.mini ? 'mini' : ''} ${panda.action ? `act-${panda.action}` : ''} ${glowingPandas.has(panda.id) ? 'glow' : ''}`}
           style={{
             left: `${panda.x}%`,
             top: `${panda.y}%`,
@@ -245,6 +268,7 @@ export default function App() {
             const isDoubleTap = lastTap?.id === panda.id && now - lastTap.at <= DOUBLE_TAP_MS;
             playPandaSound(isDoubleTap ? 'ouch' : 'cute');
             lastPandaTapRef.current = { id: panda.id, at: now };
+            triggerGlow(panda.id);
             applyAction(panda.id, chooseAction());
           }}
           aria-label="Panda friend"
