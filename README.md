@@ -77,6 +77,24 @@ fly deploy
 
 ## Fly.io troubleshooting
 
+
+### If you still get: "app does not have a Dockerfile or buildpacks configured"
+
+This is almost always a **deploy context mismatch** (wrong working directory, wrong app, or wrong config file), not a code issue.
+
+Run the included checker from repo root:
+
+```bash
+./scripts/verify-fly-context.sh
+```
+
+Then deploy with explicit app + config + no cache:
+
+```bash
+fly deploy --config fly.toml -a panda-w5karw --remote-only --build-only --push --no-cache
+```
+
+
 If Fly logs still show `RUN npm ci` or `RUN npm ci --omit=dev`, you are deploying an older Dockerfile revision.
 
 - Ensure the latest commit is pushed (the Dockerfile intentionally never uses `npm ci` and is lockfile-optional).
