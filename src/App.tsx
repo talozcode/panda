@@ -21,6 +21,7 @@ type Panda = {
 const INITIAL_PANDA_COUNT = 18;
 const MAX_PANDAS = 160;
 const LONG_PRESS_MS = 450;
+const DOUBLE_TAP_MS = 320;
 
 const randomBetween = (min: number, max: number) => min + Math.random() * (max - min);
 const chooseAction = (): PandaAction => {
@@ -52,6 +53,52 @@ export default function App() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const pressTimer = useRef<number | null>(null);
   const idRef = useRef(1);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastPandaTapRef = useRef<{ id: number; at: number } | null>(null);
+
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      const AudioCtx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return null;
+      audioContextRef.current = new AudioCtx();
+    }
+    return audioContextRef.current;
+  }, []);
+
+  const playTone = useCallback((frequency: number, durationMs: number, wave: OscillatorType, gainLevel: number, startAt: number) => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = wave;
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(gainLevel, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + durationMs / 1000);
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + durationMs / 1000 + 0.02);
+  }, [getAudioContext]);
+
+  const playPandaSound = useCallback((kind: 'cute' | 'ouch') => {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    if (audioContext.state === 'suspended') {
+      void audioContext.resume();
+    }
+
+    const now = audioContext.currentTime + 0.01;
+    if (kind === 'cute') {
+      playTone(740, 80, 'triangle', 0.08, now);
+      playTone(980, 120, 'sine', 0.07, now + 0.09);
+      return;
+    }
+
+    playTone(330, 120, 'square', 0.06, now);
+    playTone(240, 170, 'sawtooth', 0.07, now + 0.08);
+  }, [getAudioContext, playTone]);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -62,6 +109,12 @@ export default function App() {
     setPandas(Array.from({ length: INITIAL_PANDA_COUNT }, () => newPanda(idRef.current++)));
 
     return () => media.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => () => {
+    if (audioContextRef.current) {
+      void audioContextRef.current.close();
+    }
   }, []);
 
   useEffect(() => {
@@ -187,6 +240,11 @@ export default function App() {
           }}
           onClick={(event) => {
             event.stopPropagation();
+            const now = Date.now();
+            const lastTap = lastPandaTapRef.current;
+            const isDoubleTap = lastTap?.id === panda.id && now - lastTap.at <= DOUBLE_TAP_MS;
+            playPandaSound(isDoubleTap ? 'ouch' : 'cute');
+            lastPandaTapRef.current = { id: panda.id, at: now };
             applyAction(panda.id, chooseAction());
           }}
           aria-label="Panda friend"
