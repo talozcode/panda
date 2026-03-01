@@ -1,7 +1,8 @@
+# Panda Flood Dockerfile (lockfile-optional): never uses npm ci
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+RUN npm install --no-audit --no-fund
 
 FROM node:20-alpine AS build
 WORKDIR /app

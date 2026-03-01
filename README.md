@@ -66,7 +66,7 @@ fly deploy
 
 If Fly logs still show `RUN npm ci` or `RUN npm ci --omit=dev`, you are deploying an older Dockerfile revision.
 
-- Ensure the latest commit is pushed (the Dockerfile now uses `npm install`, not `npm ci`).
+- Ensure the latest commit is pushed (the Dockerfile intentionally never uses `npm ci` and is lockfile-optional).
 - Re-run deploy from the same branch/commit you pushed.
 
 - Confirm the remote builder is using the expected Dockerfile by checking your current commit hash before deploy:
